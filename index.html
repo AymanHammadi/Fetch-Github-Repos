@@ -7,22 +7,43 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <link rel="stylesheet" href="styles.css">
   </head>
   <body>
     <div class="container">
-        <div class="search-container">
-            <div class="get-repos">
-                <input type="text" 
-                       placeholder="Enter GitHub Username" 
-                       autocomplete="off"
-                       aria-label="GitHub username">
+        <div class="header-container">
+            <div class="search-container">
+                <div class="get-repos">
+                    <input type="text" 
+                           placeholder="Enter GitHub Username" 
+                           autocomplete="off"
+                           aria-label="GitHub username">
+                </div>
+                <button class="get-button">Get Repositories</button>
             </div>
-            <button class="get-button">Get Repositories</button>
+            
+            <div class="token-section">
+                <button class="token-toggle-btn" id="tokenToggleBtn">
+                    🔑 Token
+                </button>
+                <div class="token-popup" style="display: none;">
+                    <input type="password" 
+                           id="tokenInput" 
+                           placeholder="Enter GitHub token"
+                           class="token-input">
+                    <label class="token-toggle">
+                        <input type="checkbox" id="useToken">
+                        <span>Enable Token</span>
+                    </label>
+                    <small class="token-info">Rate limit: 5000 req/hour with token</small>
+                </div>
+            </div>
         </div>
+
         <div class="show-data"></div>
         <div class="rate-limit-info">
-            <small>Note: Without authentication, API requests are limited to 60 per hour.</small>
+            <small>Note: Without token: 60 requests/hour. With token: 5000 requests/hour.</small>
         </div>
     </div>
     <script src="main.js"></script>

@@ -1,8 +1,49 @@
 const theInput = document.querySelector(".get-repos input");
 const getButton = document.querySelector(".get-button");
 const reposData = document.querySelector(".show-data");
+const tokenToggle = document.querySelector("#useToken");
+const tokenInput = document.querySelector("#tokenInput");
+const tokenToggleBtn = document.querySelector("#tokenToggleBtn");
+const tokenPopup = document.querySelector(".token-popup");
 
-// Event listeners
+// Load saved token if exists
+const savedToken = localStorage.getItem("github_token");
+if (savedToken) {
+  tokenInput.value = savedToken;
+  tokenToggle.checked = true;
+}
+
+// Token popup toggle
+tokenToggleBtn.addEventListener("click", (e) => {
+  e.stopPropagation();
+  tokenPopup.style.display =
+    tokenPopup.style.display === "none" ? "block" : "none";
+});
+
+// Close popup when clicking outside
+document.addEventListener("click", (e) => {
+  if (!tokenPopup.contains(e.target) && e.target !== tokenToggleBtn) {
+    tokenPopup.style.display = "none";
+  }
+});
+
+// Token toggle handler
+tokenToggle.addEventListener("change", () => {
+  if (!tokenToggle.checked) {
+    localStorage.removeItem("github_token");
+  }
+});
+
+// Save token when entered
+tokenInput.addEventListener("change", () => {
+  if (tokenInput.value.trim()) {
+    localStorage.setItem("github_token", tokenInput.value.trim());
+  } else {
+    localStorage.removeItem("github_token");
+  }
+});
+
+// Event listeners for search
 getButton.onclick = () => getRepos();
 theInput.addEventListener("keypress", (event) => {
   if (event.key === "Enter") {
@@ -11,7 +52,16 @@ theInput.addEventListener("keypress", (event) => {
 });
 
 async function fetchGithubAPI(url) {
-  const response = await fetch(url);
+  const headers = {
+    Accept: "application/vnd.github.v3+json",
+  };
+
+  // Add token if available and enabled
+  if (tokenToggle.checked && tokenInput.value.trim()) {
+    headers.Authorization = `Bearer ${tokenInput.value.trim()}`;
+  }
+
+  const response = await fetch(url, { headers });
 
   if (response.status === 403) {
     throw new Error("API rate limit exceeded. Please try again later.");
@@ -60,10 +110,15 @@ async function getRepos() {
 
 async function getRepoLanguages(languagesUrl) {
   try {
-    return await fetchGithubAPI(languagesUrl);
+    const languages = await fetchGithubAPI(languagesUrl);
+    const total = Object.values(languages).reduce((a, b) => a + b, 0);
+    return Object.entries(languages).map(([name, bytes]) => ({
+      name,
+      percentage: ((bytes / total) * 100).toFixed(1),
+    }));
   } catch (error) {
     console.error("Error fetching languages:", error);
-    return {};
+    return [];
   }
 }
 
@@ -79,10 +134,17 @@ function displayRepos(repositories) {
     const mainDiv = document.createElement("div");
     mainDiv.className = "repo-box";
 
-    // Get repository languages
+    // Get repository languages with percentages
     const languages = await getRepoLanguages(repo.languages_url);
-    const languagesHtml = Object.keys(languages)
-      .map((lang) => `<span class="language-tag">${lang}</span>`)
+    const languagesHtml = languages
+      .map(
+        (lang) => `
+        <span class="language-tag">
+          ${lang.name}
+          <span class="language-percentage">${lang.percentage}%</span>
+        </span>
+      `
+      )
       .join("");
 
     mainDiv.innerHTML = `
@@ -93,20 +155,36 @@ function displayRepos(repositories) {
           : ""
       }
       <div class="repo-stats">
-        <span class="stars">⭐ ${repo.stargazers_count}</span>
-        <span class="forks">🔱 ${repo.forks_count}</span>
-        <span class="size">📦 ${(repo.size / 1024).toFixed(2)} MB</span>
+        <span>
+          <i class="fa-regular fa-star"></i> ${repo.stargazers_count}
+          <span class="tooltip">Stars</span>
+        </span>
+        <span>
+          <i class="fa-solid fa-code-fork"></i> ${repo.forks_count}
+          <span class="tooltip">Forks</span>
+        </span>
+        <span>
+          <i class="fa-solid fa-hard-drive"></i> ${(repo.size / 1024).toFixed(
+            2
+          )} MB
+          <span class="tooltip">Repository Size</span>
+        </span>
       </div>
       <div class="languages">${languagesHtml}</div>
       <div class="repo-meta">
-        <span>Created: ${new Date(repo.created_at).toLocaleDateString()}</span>
-        <span>Last updated: ${new Date(
-          repo.updated_at
-        ).toLocaleDateString()}</span>
+        <span>
+          <i class="fa-regular fa-calendar"></i>
+          Created: ${new Date(repo.created_at).toLocaleDateString()}
+        </span>
+        <span>
+          <i class="fa-solid fa-clock-rotate-left"></i>
+          Last updated: ${new Date(repo.updated_at).toLocaleDateString()}
+        </span>
       </div>
-      <a href="${
-        repo.html_url
-      }" target="_blank" class="repo-link">View Repository</a>
+      <a href="${repo.html_url}" target="_blank" class="repo-link">
+        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+        &nbsp; View Repository
+      </a>
     `;
 
     reposData.appendChild(mainDiv);
