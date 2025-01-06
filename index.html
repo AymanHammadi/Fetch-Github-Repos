@@ -13,11 +13,17 @@
     <div class="container">
         <div class="search-container">
             <div class="get-repos">
-                <input type="text" placeholder="Enter GitHub Username">
+                <input type="text" 
+                       placeholder="Enter GitHub Username" 
+                       autocomplete="off"
+                       aria-label="GitHub username">
             </div>
             <button class="get-button">Get Repositories</button>
         </div>
         <div class="show-data"></div>
+        <div class="rate-limit-info">
+            <small>Note: Without authentication, API requests are limited to 60 per hour.</small>
+        </div>
     </div>
     <script src="main.js"></script>
   </body>

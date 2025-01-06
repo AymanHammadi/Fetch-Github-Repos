@@ -2,25 +2,30 @@ const theInput = document.querySelector(".get-repos input");
 const getButton = document.querySelector(".get-button");
 const reposData = document.querySelector(".show-data");
 
-// Debounce function to limit API calls
-const debounce = (func, delay) => {
-  let timeoutId;
-  return (...args) => {
-    clearTimeout(timeoutId);
-    timeoutId = setTimeout(() => func.apply(null, args), delay);
-  };
-};
-
 // Event listeners
 getButton.onclick = () => getRepos();
-theInput.addEventListener(
-  "input",
-  debounce(() => getRepos(), 500)
-);
+theInput.addEventListener("keypress", (event) => {
+  if (event.key === "Enter") {
+    getRepos();
+  }
+});
 
-async function getRepoLanguages(languagesUrl) {
-  const response = await fetch(languagesUrl);
-  return await response.json();
+async function fetchGithubAPI(url) {
+  const response = await fetch(url);
+
+  if (response.status === 403) {
+    throw new Error("API rate limit exceeded. Please try again later.");
+  }
+
+  if (response.status === 404) {
+    throw new Error("User not found.");
+  }
+
+  if (!response.ok) {
+    throw new Error(`GitHub API error: ${response.status}`);
+  }
+
+  return response.json();
 }
 
 async function getRepos() {
@@ -33,24 +38,16 @@ async function getRepos() {
 
   try {
     // Get user data
-    const response = await fetch(
-      `https://api.github.com/users/${theInput.value}`
+    const userData = await fetchGithubAPI(
+      `https://api.github.com/users/${encodeURIComponent(theInput.value)}`
     );
-    const userData = await response.json();
-
-    if (response.status === 403) {
-      throw new Error("API rate limit exceeded. Please try again later.");
-    }
-
-    if (userData.message === "Not Found") {
-      throw new Error("User Not Found.");
-    }
 
     // Get repos data
-    const reposResponse = await fetch(
-      `${userData.repos_url}?sort=updated&per_page=100`
+    const repositoriesData = await fetchGithubAPI(
+      `https://api.github.com/users/${encodeURIComponent(
+        theInput.value
+      )}/repos?sort=updated&per_page=100`
     );
-    const repositoriesData = await reposResponse.json();
 
     displayRepos(repositoriesData);
   } catch (error) {
@@ -58,6 +55,15 @@ async function getRepos() {
     console.error("Error:", error);
   } finally {
     showLoading(false);
+  }
+}
+
+async function getRepoLanguages(languagesUrl) {
+  try {
+    return await fetchGithubAPI(languagesUrl);
+  } catch (error) {
+    console.error("Error fetching languages:", error);
+    return {};
   }
 }
 
